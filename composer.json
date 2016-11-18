@@ -1,0 +1,8 @@
+{
+    "name": "kvitli/confluence-rest-client",
+    "type": "library",
+    "description": "Library to interact with the Confluence REST API",
+    "require": {
+        "php": "^5.3.3 || ^7.0"
+    }
+}
