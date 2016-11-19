@@ -2,21 +2,41 @@
 
 namespace Kvitli;
 
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
+
 /**
  *
  **/
-class ConfluenceConnection {
+class Confluence {
 	private $base_url = false;
 	private $username = false;
 	private $password = false;
 	private $ch = false;
 
 	private $debug = false;
-	
-	public function __construct($base_url, $username, $password) {
-		$this->base_url = $base_url;
-		$this->username = $username;
-		$this->password = $password;
+
+	private $request_log = false;
+
+	/**
+	 * Confluence constructor. Leave options empty to load from Environment variables (.env-file, ENV or SERVER)
+	 * @param bool $base_url
+	 * @param bool $username
+	 * @param bool $password
+	 */
+	public function __construct($base_url = false, $username = false, $password = false) {
+		if(class_exists('Dotenv')) {
+			$dotenv = new \Dotenv\Dotenv(__DIR__, '.nev');
+			$dotenv->load();
+		}
+
+		$this->base_url = $base_url or getenv('CONFLUENCE_BASEURL');
+		$this->username = $username or getenv('CONFLUENCE_USERNAME');
+		$this->password = $password or getenv('CONFLUENCE_PASSWORD');
+
+		// create a log channel
+		$this->request_log = new Logger('name');
+		$this->request_log->pushHandler(new StreamHandler(__DIR__ . '/confluence-request.log', Logger::WARNING));
 	}
 
 	public function set_debug($debug_level) {
@@ -94,19 +114,19 @@ class ConfluenceConnection {
 				$pages_to_delete[] = $curr_child_page->get_id();
 			}
 		}
-		echo "pages to delete ".implode(', ', $pages_to_delete)."\n";
+
 		foreach($pages_to_delete as $delete_id) {
 			$this->delete_page($delete_id);
 		}
 
 		foreach($page_tree as $page) {
 			$orig_page = $this->get_page($page['page_id']);
-			echo "Copying page {$page['title']}\n";
+
 			$page_id = $this->copy_page($orig_page->get_id(), $space, $new_parent_id, $transformation);
 			if($page_id !== false) {
 				$this->create_page_tree($space, $page_id, $page['children']);
 			} else {
-				echo "Failed to create page\n";
+				#echo "Failed to create page\n";
 			}
 		}
 	}
@@ -120,10 +140,8 @@ class ConfluenceConnection {
 		$new_page_id = $this->get_page_id_by_title($space, $page->get_title());
 
 		if($new_page_id !== false) {
-			echo "Page exists, updating, $new_page_id\n";
 			$new_page_id = $this->update_page($space, $new_page_id, $page->get_title(), $page->get_body(), $new_parent_id);
 		} else {
-			echo "Page doesn't exist, creating\n";
 			$new_page_id = $this->create_page($space, $page->get_title(), $page->get_body(), $new_parent_id);
 		}
 
@@ -163,13 +181,13 @@ class ConfluenceConnection {
 		foreach($source_attachs as $attach) {
 			$data = $this->execute_download_request($attach->get_attachment_url());
 			$image_path = sys_get_temp_dir().'/'.$attach->get_filename();
-			echo "Saving to $image_path\n";
+
 			file_put_contents($image_path, $data);
 			$this->upload_attachment($image_path, $target_page_id);
-			echo "File uploaded, deleting\n";
+
 			unlink($image_path);
 		}
-		#var_dump($source_attachs);die();
+
 		return true;
 	}
 
@@ -529,7 +547,8 @@ class ConfluenceConnection {
 		$output = curl_exec($ch);
 
 		if(curl_errno($ch)) {
-			echo "CURL ERROR: ".curl_error($ch)."\n";
+			$this->add_request_log($url, $method, $request, curl_errno($ch), curl_error($ch));
+			#echo "CURL ERROR: ".curl_error($ch)."\n";
 			return false;
 		}
 
@@ -538,8 +557,12 @@ class ConfluenceConnection {
 			case 204:
 			case 200:
 				break;
+			case 400:
+				$error = json_decode($output);
+				$this->add_request_log($url, $method, $request, $return_code, $error->message);
+				break;
 			default:
-				echo "HTTP CODE: ".$return_code."\n";
+				$this->add_request_log($url, $method, $request, $return_code, null);
 				return false;
 		}
 
@@ -548,6 +571,20 @@ class ConfluenceConnection {
 		} else {
 			return $output;
 		}
+	}
+
+	public function get_request_log() {
+		return $this->request_log;
+	}
+
+	private function add_request_log($url, $method, $request, $return_code, $error_message) {
+		$this->request_log->addInfo('Confluence request', array(
+			'url' => $url,
+			'method' => $method,
+			'request' => $request,
+			'return_code' => $return_code,
+			'error_message' => $error_message,
+		));
 	}
 
 	private function execute_download_request($url) {
