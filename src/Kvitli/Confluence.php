@@ -25,18 +25,18 @@ class Confluence {
 	 * @param bool $password
 	 */
 	public function __construct($base_url = false, $username = false, $password = false) {
-		if(class_exists('Dotenv')) {
-			$dotenv = new \Dotenv\Dotenv(__DIR__, '.nev');
+		if(class_exists('\Dotenv\Dotenv')) {
+			$dotenv = new \Dotenv\Dotenv('./');
 			$dotenv->load();
 		}
 
-		$this->base_url = $base_url or getenv('CONFLUENCE_BASEURL');
-		$this->username = $username or getenv('CONFLUENCE_USERNAME');
-		$this->password = $password or getenv('CONFLUENCE_PASSWORD');
+		$this->base_url = $base_url ? $base_url : getenv('CONFLUENCE_BASEURL');
+		$this->username = $username ? $username : getenv('CONFLUENCE_USERNAME');
+		$this->password = $password ? $password : getenv('CONFLUENCE_PASSWORD');
 
 		// create a log channel
 		$this->request_log = new Logger('name');
-		$this->request_log->pushHandler(new StreamHandler(__DIR__ . '/confluence-request.log', Logger::WARNING));
+		$this->request_log->pushHandler(new StreamHandler('/tmp/confluence-request.log', Logger::INFO));
 	}
 
 	public function set_debug($debug_level) {
