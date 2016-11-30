@@ -48,7 +48,7 @@ class Confluence {
 	function get_base_url() {
 		return $this->base_url;
 	}
-	
+
 	/**
 	 * Get all pages for a specific space.
 	 * Returns array with $page_id => $title
@@ -59,16 +59,16 @@ class Confluence {
 		if($res === false) {
 			return false;
 		}
-		
+
 		$ret = array();
-		
+
 		foreach($res->results as $result) {
 			$ret[$result->id] = $result->title;
 		}
-		
+
 		return $ret;
 	}
-	
+
 	/**
 	 * Returns recursive array containg tree structure; title, page_id, children, space
 	 **/
@@ -76,7 +76,7 @@ class Confluence {
 		$ret = array();
 
 		$page = $this->get_page($page_id);
-		
+
 		$des = $page->get_child_pages($exclude_labels);
 		foreach($des as $child_page) {
 			$children = $this->get_page_tree($space, $child_page->get_id(), $exclude_labels);
@@ -126,7 +126,7 @@ class Confluence {
 
 			$page_id = $this->copy_page($orig_page->get_id(), $space, $new_parent_id, $transformation);
 			if($page_id !== false) {
-				$this->create_page_tree($space, $page_id, $page['children']);
+				$this->create_page_tree($space, $page_id, $page['children'], $transformation);
 			} else {
 				#echo "Failed to create page\n";
 			}
@@ -198,65 +198,65 @@ class Confluence {
 		if($space !== false) {
 			$cqlcontext['spaceKey'] = $space;
 		}
-		
+
 		$res = $this->execute_get_request('/rest/api/search', array(
 			'cql' => $cql,
 			'cqlcontext' => count($cqlcontext) > 0 ? ($cqlcontext) : '',
 			'limit' => self::MAX_PAGES,
 			'expand' => 'ancestors',
 		));
-		
+
 		if($res === false) {
 			return false;
 		}
-		
+
 		$ret = array();
 		foreach($res->results as $res) {
 			$ret[] = $res;
 		}
-		
+
 		return $ret;
 	}
-	
+
 	public function get_child_pages($page_id) {
 		$type = 'page';
 		$res = $this->execute_get_request('/rest/api/content/'.$page_id.'/child/'.$type, array(
 			'limit' => self::MAX_PAGES
 		));
-		
+
 		if($res === false) {
 			return false;
 		}
-		
+
 		$ret = array();
 		foreach($res->results as $res) {
 			$ret[] = $res;
 		}
-		
+
 		return $ret;
 	}
-	
+
 	public function get_page($page_id) {
 		$content = $this->execute_get_request('/rest/api/content/'.$page_id, array('expand' => 'body.storage'));
 		return new Content($content, $this);
 	}
-	
+
 	public function get_next_version_for_page($page_id) {
 		$history = $this->execute_get_request('/rest/api/content/'.$page_id.'/history');
 		if($history === false) {
 			return false;
 		}
-		
+
 		return $history->lastUpdated->number + 1;
 	}
-	
+
 	public function get_page_id_by_title($space, $title) {
 		$res = $this->execute_get_request('/rest/api/content/', array('type' => 'page', 'title' => $title, 'spaceKey' => $space));
-		
+
 		if($res === false || !property_exists($res, 'results') || count($res->results) == 0) {
 			return false;
 		}
-		
+
 		return $res->results[0]->id;
 	}
 
@@ -287,27 +287,27 @@ class Confluence {
 		if($res !== false && isset($res->results[0]->id)) {
 			return $res->results[0]->id;
 		}
-		
+
 		return false;
 	}
 
 	public function delete_attachment($attachment_id) {
 		return $this->delete_page($attachment_id);
 	}
-	
+
 	/**
 	 * Upload attachment to page. Updated existing attachment if already exists.
 	 **/
 	public function upload_attachment($image_path, $page_id) {
 		$attach_id = $this->get_attachment_id_by_filename(basename($image_path), $page_id);
-		
+
 		if($attach_id !== false) {
 			$data = array("file" => '@'.$image_path);
 			$res = $this->execute_post_request(
-				'/rest/api/content/'.$page_id.'/child/attachment/'.$attach_id.'/data', 
-				$data, 
+				'/rest/api/content/'.$page_id.'/child/attachment/'.$attach_id.'/data',
+				$data,
 				array(
-					'X-Atlassian-Token: nocheck', 
+					'X-Atlassian-Token: nocheck',
 					'Content-Type: multipart/form-data'
 				));
 
@@ -316,14 +316,14 @@ class Confluence {
 			} else {
 				$attach_id = false;
 			}
-			
+
 		} else {
 			$data = array("file" => '@'.$image_path);
 			$res = $this->execute_post_request(
-				'/rest/api/content/'.$page_id.'/child/attachment', 
-				$data, 
+				'/rest/api/content/'.$page_id.'/child/attachment',
+				$data,
 				array(
-					'X-Atlassian-Token: nocheck', 
+					'X-Atlassian-Token: nocheck',
 					'Content-Type: multipart/form-data'
 				));
 
@@ -333,7 +333,7 @@ class Confluence {
 				$attach_id = false;
 			}
 		}
-		
+
 		return $attach_id;
 	}
 
@@ -390,7 +390,7 @@ class Confluence {
 				'id' => $parent_id
 			));
 		}
-		
+
 		$ret = $this->execute_put_request('/rest/api/content/'.$page_id, json_encode($data));
 
 		if($ret !== false) {
@@ -512,8 +512,8 @@ class Confluence {
 			$this->ch = curl_init();
 		#}
 
-		curl_setopt($this->ch, CURLOPT_URL, $this->base_url.$endpoint); 
-		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1); 
+		curl_setopt($this->ch, CURLOPT_URL, $this->base_url.$endpoint);
+		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
 		#curl_setopt($this->ch, CURLOPT_VERBOSE, 1);
 		#curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, 0);
 		#curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, 0);
@@ -521,10 +521,10 @@ class Confluence {
 		//curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
 		curl_setopt($this->ch, CURLOPT_USERPWD, $this->username.':'.$this->password);
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
-		
+
 		return $this->ch;
 	}
-	
+
 	private function exec_curl($url, $method = 'GET', $request = false, $headers = array(), $decode_json = true) {
 		$ch = $this->get_curl($url, $headers);
 
@@ -605,7 +605,7 @@ class Confluence {
 
 		return $this->exec_curl($url, 'GET', false, $headers);
 	}
-	
+
 	private function execute_post_request($endpoint, $request, $headers = array('Content-Type: application/json')) {
 		return $this->exec_curl($endpoint, 'POST', $request, $headers);
 	}
@@ -634,7 +634,7 @@ class ContentTransformation {
 			if(is_callable($transformation) && !$transformation($connection, $page_id, $new_page_id)) {
 				$ret = false;
 			} else {
-				if(!call_user_func_array($transformation, array($connection, $page_id, $new_page_id)) === false) {
+				if(call_user_func_array($transformation, array($connection, $page_id, $new_page_id)) === false) {
 					$ret = false;
 				}
 			}
