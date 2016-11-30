@@ -18,6 +18,8 @@ class Confluence {
 
 	private $request_log = false;
 
+	const MAX_PAGES = 10000;
+
 	/**
 	 * Confluence constructor. Leave options empty to load from Environment variables (.env-file, ENV or SERVER)
 	 * @param bool $base_url
@@ -52,8 +54,8 @@ class Confluence {
 	 * Returns array with $page_id => $title
 	 **/
 	public function get_all_pages_for_space($space) {
-		// TODO Weakness for really large spaces. Limit number of pages to 1000
-		$res = $this->execute_get_request('/rest/api/content/', array('type' => 'page', 'spaceKey' => $space, 'limit' => '1000'));
+		// TODO Weakness for really large spaces. Limit number of pages to self::MAX_PAGES
+		$res = $this->execute_get_request('/rest/api/content/', array('type' => 'page', 'spaceKey' => $space, 'limit' => self::MAX_PAGES));
 		if($res === false) {
 			return false;
 		}
@@ -200,7 +202,7 @@ class Confluence {
 		$res = $this->execute_get_request('/rest/api/search', array(
 			'cql' => $cql,
 			'cqlcontext' => count($cqlcontext) > 0 ? ($cqlcontext) : '',
-			'limit' => 1000,
+			'limit' => self::MAX_PAGES,
 			'expand' => 'ancestors',
 		));
 		
@@ -219,7 +221,7 @@ class Confluence {
 	public function get_child_pages($page_id) {
 		$type = 'page';
 		$res = $this->execute_get_request('/rest/api/content/'.$page_id.'/child/'.$type, array(
-			'limit' => 1000
+			'limit' => self::MAX_PAGES
 		));
 		
 		if($res === false) {
