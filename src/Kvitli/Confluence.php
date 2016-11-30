@@ -782,6 +782,14 @@ class Attachment extends Content {
 abstract class StorageFormatEntity {
 	abstract function get_storage_format();
 
+	function toString() {
+		return $this->get_storage_format();
+	}
+
+	function __toString() {
+		return $this->get_storage_format();
+	}
+
 	function pretty_print() {
 		// attribution http://stackoverflow.com/a/7453922
 		$xml = $this->get_storage_format();
@@ -849,6 +857,10 @@ class Macro extends StorageFormatEntity {
 	}
 
 	function set_body($value) {
+		if(is_subclass_of($value, 'Kvitli\StorageFormatEntity')) {
+			$value = $value->get_storage_format();
+		}
+
 		$this->body = $value;
 
 		return $this;
