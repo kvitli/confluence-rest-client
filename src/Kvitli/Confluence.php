@@ -302,7 +302,8 @@ class Confluence {
 		$attach_id = $this->get_attachment_id_by_filename(basename($image_path), $page_id);
 
 		if($attach_id !== false) {
-			$data = array("file" => '@'.$image_path);
+			#$data = array("file" => '@'.$image_path);
+			$data = array("file" => curl_file_create($image_path));
 			$res = $this->execute_post_request(
 				'/rest/api/content/'.$page_id.'/child/attachment/'.$attach_id.'/data',
 				$data,
@@ -318,7 +319,8 @@ class Confluence {
 			}
 
 		} else {
-			$data = array("file" => '@'.$image_path);
+			#$data = array("file" => '@'.$image_path);
+			$data = array("file" => curl_file_create($image_path));
 			$res = $this->execute_post_request(
 				'/rest/api/content/'.$page_id.'/child/attachment',
 				$data,
@@ -515,8 +517,8 @@ class Confluence {
 		curl_setopt($this->ch, CURLOPT_URL, $this->base_url.$endpoint);
 		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
 		#curl_setopt($this->ch, CURLOPT_VERBOSE, 1);
-		#curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, 0);
-		#curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, 0);
+		curl_setopt($this->ch, CURLOPT_SSL_VERIFYPEER, 0);
+		curl_setopt($this->ch, CURLOPT_SSL_VERIFYHOST, 0);
 
 		//curl_setopt($ch, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
 		curl_setopt($this->ch, CURLOPT_USERPWD, $this->username.':'.$this->password);
