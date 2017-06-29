@@ -778,7 +778,7 @@ class Attachment extends Content {
 		return false;
 	}
 
-	function get_child_pages() {
+	function get_child_pages($dummy) {
 		return false;
 	}
 }
