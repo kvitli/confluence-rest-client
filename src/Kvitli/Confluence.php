@@ -27,7 +27,8 @@ class Confluence {
 	 * @param bool $password
 	 */
 	public function __construct($base_url = false, $username = false, $password = false) {
-		if(class_exists('\Dotenv\Dotenv')) {
+		# Skip loading via .env if class doesn't exist or if all arguments given to function
+		if(class_exists('\Dotenv\Dotenv') && func_num_args() < 3) {
 			$dotenv = new \Dotenv\Dotenv('./');
 			$dotenv->load();
 		}
