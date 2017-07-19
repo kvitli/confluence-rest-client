@@ -1,0 +1,28 @@
+<?php
+namespace Kvitli;
+
+class Link extends StorageFormatEntity {
+	private $link_type;
+	private $link_parameter;
+	private $link_text;
+
+	function __construct($type, $parameter, $text) {
+		$this->link_type = $type;
+		$this->link_text = $text;
+		$this->link_parameter = $parameter;
+	}
+
+	static function add($type, $parameter, $text) {
+		return new Link($type, $parameter, $text);
+	}
+
+	function get_storage_format() {
+		$ret = '<ac:link>'
+			.'<ri:shortcut ri:key="'.$this->link_type.'" ri:parameter="'.$this->link_parameter.'" />'
+			.'<ac:plain-text-link-body><![CDATA['.$this->link_text.']]></ac:plain-text-link-body>'
+		.'</ac:link>';
+
+		return $ret;
+	}
+}
+
