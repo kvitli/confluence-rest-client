@@ -8,6 +8,10 @@
         "monolog/monolog": "~1.12",
         "vlucas/phpdotenv": "~2.0"
     },
+    "require-dev": {
+      "simpletest/simpletest": "^1.1",
+      "phpdocumentor/phpdocumentor": "2.*"
+    },
     "autoload": {
         "psr-0": {
             "Kvitli\\": "src/"
