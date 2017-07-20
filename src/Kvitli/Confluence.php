@@ -13,10 +13,7 @@ class Confluence {
 	private $username = false;
 	private $password = false;
 	private $ch = false;
-
-	private $debug = false;
-
-	private $request_log = false;
+	private $log = false;
 
 	const MAX_PAGES = 10000;
 
@@ -25,10 +22,11 @@ class Confluence {
 	 * @param bool $base_url
 	 * @param bool $username
 	 * @param bool $password
+	 * @param Monolog\Logger $logger
 	 */
-	public function __construct($base_url = false, $username = false, $password = false) {
+	public function __construct($base_url = false, $username = false, $password = false, $logger = false) {
 		# Skip loading via .env if class doesn't exist or if all arguments given to function
-		if(class_exists('\Dotenv\Dotenv') && func_num_args() < 3) {
+		if(class_exists('\Dotenv\Dotenv') && ($base_url === false || $username === false || $password === false)) {
 			$dotenv = new \Dotenv\Dotenv('./');
 			$dotenv->load();
 		}
@@ -38,12 +36,18 @@ class Confluence {
 		$this->password = $password ? $password : getenv('CONFLUENCE_PASSWORD');
 
 		// create a log channel
-		$this->request_log = new Logger('name');
-		$this->request_log->pushHandler(new StreamHandler('/tmp/confluence-request.log', Logger::INFO));
+		if($logger !== false) {
+			$this->log = $logger;
+		} else {
+			$this->log = new Logger('Kvitli\Confluence');
+			$this->log->pushHandler(new StreamHandler('/tmp/confluence-request.log', Logger::INFO));
+		}
 	}
 
+	/**
+	 * @deprecated
+	 **/
 	public function set_debug($debug_level) {
-		$this->debug = $debug_level;
 	}
 
 	function get_base_url() {
@@ -531,9 +535,7 @@ class Confluence {
 	private function exec_curl($url, $method = 'GET', $request = false, $headers = array(), $decode_json = true) {
 		$ch = $this->get_curl($url, $headers);
 
-		if($this->debug) {
-			echo "$method - $url\n";#var_dump($request);
-		}
+		$this->log->debug("$method - $url");
 
 		switch($method) {
 			case 'POST':
@@ -552,8 +554,7 @@ class Confluence {
 		$output = curl_exec($ch);
 
 		if(curl_errno($ch)) {
-			$this->add_request_log($url, $method, $request, curl_errno($ch), curl_error($ch));
-			#echo "CURL ERROR: ".curl_error($ch)."\n";
+			$this->log->error("Failed to complete request $method $url with Curl error ".curl_errno($ch).": ".curl_error($ch));
 			return false;
 		}
 
@@ -564,10 +565,10 @@ class Confluence {
 				break;
 			case 400:
 				$error = json_decode($output);
-				$this->add_request_log($url, $method, $request, $return_code, $error->message);
+				$this->log->error("Confluence return 400 from $method $url with message {$error->message}");
 				break;
 			default:
-				$this->add_request_log($url, $method, $request, $return_code, null);
+				$this->log->error("Confluence return unknown HTTP code $return_code from $method $url");
 				return false;
 		}
 
@@ -580,16 +581,6 @@ class Confluence {
 
 	public function get_request_log() {
 		return $this->request_log;
-	}
-
-	private function add_request_log($url, $method, $request, $return_code, $error_message) {
-		$this->request_log->addInfo('Confluence request', array(
-			'url' => $url,
-			'method' => $method,
-			'request' => $request,
-			'return_code' => $return_code,
-			'error_message' => $error_message,
-		));
 	}
 
 	private function execute_download_request($url) {

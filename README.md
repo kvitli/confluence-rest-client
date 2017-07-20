@@ -10,8 +10,6 @@ Sample code:
 ```php
 # Creating Confluence connection with parameters loaded from .env file
 $cf = new Confluence();
-# Enable (somewhat more) detailed logging
-$cf->set_debug(true);
 
 # Get page id by space SPC and My sample page
 $cf->get_page_id_by_title('SPC', 'My sample page');
@@ -54,5 +52,5 @@ php tests/tests.php
 ```
 Generate phpdoc
 ```
-phpdoc -d ./src -t ./docs/
+php vendor/phpdocumentor/phpdocumentor/bin/phpdoc -d ./src -t ./docs/
 ```
