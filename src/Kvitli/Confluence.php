@@ -67,9 +67,18 @@ class Confluence {
 
 		$ret = array();
 
-		foreach($res->results as $result) {
-			$ret[$result->id] = $result->title;
+		while($res !== false) {
+			foreach($res->results as $result) {
+				$ret[$result->id] = $result->title;
+			}
+
+			if($res->_links->next) {
+				$res = $this->execute_get_request($res->_links->next);
+			} else {
+				$res = false;
+			}
 		}
+
 
 		return $ret;
 	}
